@@ -11,6 +11,7 @@
 #include "zipfian_generator.h"
 #include "scrambled_zipfian_generator.h"
 #include "skewed_latest_generator.h"
+#include "sequential_generator.h"
 #include "const_generator.h"
 #include "core_workload.h"
 #include "random_byte_generator.h"
@@ -181,7 +182,10 @@ void CoreWorkload::Init(const utils::Properties &p) {
     }
   } else if (request_dist == "latest") {
     key_chooser_ = new SkewedLatestGenerator(*transaction_insert_key_sequence_);
-  } else {
+  } else if(request_dist=="sequential"){
+    key_chooser_ = new SequentialGenerator(0, record_count_ - 1);
+  } else
+  {
     throw utils::Exception("Unknown request distribution: " + request_dist);
   }
 
