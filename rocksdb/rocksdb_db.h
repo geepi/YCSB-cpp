@@ -28,9 +28,8 @@ class RocksdbDB : public DB {
 
   void Cleanup();
 
-  Status Read(const std::string &table, const std::string &key,
-              const std::vector<std::string> *fields, std::vector<Field> &result) {
-    return (this->*(method_read_))(table, key, fields, result);
+  Status Read(const std::string &table, const std::string &key) {
+    return (this->*(method_read_))(table, key);
   }
 
   Status Scan(const std::string &table, const std::string &key, int len,
@@ -38,12 +37,12 @@ class RocksdbDB : public DB {
     return (this->*(method_scan_))(table, key, len, fields, result);
   }
 
-  Status Update(const std::string &table, const std::string &key, std::vector<Field> &values) {
-    return (this->*(method_update_))(table, key, values);
+  Status Update(const std::string &table, const std::string &key) {
+    return (this->*(method_update_))(table, key);
   }
 
-  Status Insert(const std::string &table, const std::string &key, std::vector<Field> &values) {
-    return (this->*(method_insert_))(table, key, values);
+  Status Insert(const std::string &table, const std::string &key) {
+    return (this->*(method_insert_))(table, key);
   }
 
   Status Delete(const std::string &table, const std::string &key) {
@@ -66,28 +65,21 @@ class RocksdbDB : public DB {
   static void DeserializeRow(std::vector<Field> &values, const char *p, const char *lim);
   static void DeserializeRow(std::vector<Field> &values, const std::string &data);
 
-  Status ReadSingle(const std::string &table, const std::string &key,
-                    const std::vector<std::string> *fields, std::vector<Field> &result);
+  Status ReadSingle(const std::string &table, const std::string &key);
   Status ScanSingle(const std::string &table, const std::string &key, int len,
                     const std::vector<std::string> *fields,
                     std::vector<std::vector<Field>> &result);
-  Status UpdateSingle(const std::string &table, const std::string &key,
-                      std::vector<Field> &values);
-  Status MergeSingle(const std::string &table, const std::string &key,
-                     std::vector<Field> &values);
-  Status InsertSingle(const std::string &table, const std::string &key,
-                      std::vector<Field> &values);
+  Status UpdateSingle(const std::string &table, const std::string &key);
+  Status MergeSingle(const std::string &table, const std::string &key);
+  Status InsertSingle(const std::string &table, const std::string &key);
   Status DeleteSingle(const std::string &table, const std::string &key);
 
-  Status (RocksdbDB::*method_read_)(const std::string &, const std:: string &,
-                                    const std::vector<std::string> *, std::vector<Field> &);
+  Status (RocksdbDB::*method_read_)(const std::string &, const std:: string &);
   Status (RocksdbDB::*method_scan_)(const std::string &, const std::string &,
                                     int, const std::vector<std::string> *,
                                     std::vector<std::vector<Field>> &);
-  Status (RocksdbDB::*method_update_)(const std::string &, const std::string &,
-                                      std::vector<Field> &);
-  Status (RocksdbDB::*method_insert_)(const std::string &, const std::string &,
-                                      std::vector<Field> &);
+  Status (RocksdbDB::*method_update_)(const std::string &, const std::string &);
+  Status (RocksdbDB::*method_insert_)(const std::string &, const std::string &);
   Status (RocksdbDB::*method_delete_)(const std::string &, const std::string &);
 
   int fieldcount_;
