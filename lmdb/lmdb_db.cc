@@ -110,7 +110,7 @@ void LmdbDB::Init() {
   }
 
   MDB_txn *txn;
-  ret = mdb_txn_begin(env_, nullptr, 0, &txn);
+  ret = mdb_txn_begin(env_, nullptr, MDB_INTEGERKEY, &txn);
   if (ret) {
     throw utils::Exception(std::string("Init mdb_txn_begin: ") + mdb_strerror(ret));
   }
@@ -206,11 +206,7 @@ DB::Status LmdbDB::Read(const std::string &table, const std::string &key, const 
   } else if (ret) {
     throw utils::Exception(std::string("Read mdb_get: ") + mdb_strerror(ret));
   }
-  if (fields != nullptr) {
-    DeserializeRowFilter(&result, static_cast<char *>(val_slice.mv_data), val_slice.mv_size, *fields);
-  } else {
-    DeserializeRow(&result, static_cast<char *>(val_slice.mv_data), val_slice.mv_size);
-  }
+  
 cleanup:
   mdb_txn_abort(txn);
   return s;
@@ -258,40 +254,21 @@ cleanup:
   return s;
 }
 
-DB::Status LmdbDB::Update(const std::string &table, const std::string &key, std::vector<Field> &values) {
+DB::Status LmdbDB::Update(const std::string &table, const std::string &key, std::vector<Field> MAYBE_UNUSED &values)
+{
   MDB_txn *txn;
   MDB_val key_slice, val_slice;
 
   key_slice.mv_data = static_cast<void *>(const_cast<char *>(key.data()));
   key_slice.mv_size = key.size();
 
+  val_slice.mv_data = const_cast<char *>(key.data());
+  val_slice.mv_size = key.size();
   int ret;
   ret = mdb_txn_begin(env_, nullptr, 0, &txn);
   if (ret) {
     throw utils::Exception(std::string("Update mdb_txn_begin: ") + mdb_strerror(ret));
   }
-  ret = mdb_get(txn, dbi_, &key_slice, &val_slice);
-  if (ret) {
-    throw utils::Exception(std::string("Update mdb_get: ") + mdb_strerror(ret));
-  }
-  std::vector<Field> current_values;
-  DeserializeRow(&current_values, static_cast<char *>(val_slice.mv_data), val_slice.mv_size);
-  for (Field &new_field : values) {
-    bool found MAYBE_UNUSED = false;
-    for (Field &cur_field : current_values) {
-      if (cur_field.name == new_field.name) {
-        found = true;
-        cur_field.value = new_field.value;
-        break;
-      }
-    }
-    assert(found);
-  }
-
-  std::string data;
-  SerializeRow(current_values, &data);
-  val_slice.mv_data = const_cast<char *>(data.data());
-  val_slice.mv_size = data.size();
   ret = mdb_put(txn, dbi_, &key_slice, &val_slice, 0);
   if (ret) {
     throw utils::Exception(std::string("Update mdb_put: ") + mdb_strerror(ret));
@@ -304,17 +281,16 @@ DB::Status LmdbDB::Update(const std::string &table, const std::string &key, std:
   return kOK;
 }
 
-DB::Status LmdbDB::Insert(const std::string &table, const std::string &key, std::vector<Field> &values) {
+DB::Status LmdbDB::Insert(const std::string &table, const std::string &key, std::vector<Field> MAYBE_UNUSED &values)
+{
   MDB_txn *txn;
   MDB_val key_slice, val_slice;
 
   key_slice.mv_data = static_cast<void *>(const_cast<char *>(key.data()));
   key_slice.mv_size = key.size();
 
-  std::string data;
-  SerializeRow(values, &data);
-  val_slice.mv_data = static_cast<void *>(const_cast<char *>(data.data()));
-  val_slice.mv_size = data.size();
+  val_slice.mv_data = static_cast<void *>(const_cast<char *>(key.data()));
+  val_slice.mv_size = key.size();
 
   int ret;
   ret = mdb_txn_begin(env_, nullptr, 0, &txn);
