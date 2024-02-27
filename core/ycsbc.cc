@@ -16,6 +16,8 @@
 #include <future>
 #include <chrono>
 #include <iomanip>
+#include <unistd.h>
+#include <cstdio>
 
 #include "client.h"
 #include "core_workload.h"
@@ -84,7 +86,27 @@ void RateLimitThread(std::string rate_file, std::vector<ycsbc::utils::RateLimite
   }
 }
 
-int main(const int argc, const char *argv[]) {
+void GetWriteAmplification(){
+  pid_t pid = getpid();
+  std::string path = "/proc/" + std::to_string(pid) + "/io";
+  std::ifstream file(path);
+  if (file.is_open())
+  {
+    std::string line;
+    while (std::getline(file, line))
+    {
+      std::cout << line << std::endl;
+    }
+    file.close();
+  }
+  else
+  {
+    std::cout << pid << " Error" << std::endl;
+  }
+}
+
+int main(const int argc, const char *argv[])
+{
   ycsbc::utils::Properties props;
   ParseCommandLine(argc, argv, props);
 
@@ -159,11 +181,11 @@ int main(const int argc, const char *argv[]) {
     std::cout << "Load runtime(sec): " << runtime << std::endl;
     std::cout << "Load operations(ops): " << sum << std::endl;
     std::cout << "Load throughput(ops/sec): " << sum / runtime << std::endl;
+    GetWriteAmplification();
   }
 
   measurements->Reset();
   std::this_thread::sleep_for(std::chrono::seconds(stoi(props.GetProperty("sleepafterload", "0"))));
-
 
   // transaction phase
   if (do_transaction) {
@@ -221,6 +243,7 @@ int main(const int argc, const char *argv[]) {
     std::cout << "Run runtime(sec): " << runtime << std::endl;
     std::cout << "Run operations(ops): " << sum << std::endl;
     std::cout << "Run throughput(ops/sec): " << sum / runtime << std::endl;
+    GetWriteAmplification();
   }
 
   for (int i = 0; i < num_threads; i++) {
