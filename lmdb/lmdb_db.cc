@@ -185,8 +185,7 @@ void LmdbDB::DeserializeRow(std::vector<Field> *values, const char *data_ptr, si
   assert(values->size() == field_count_);
 }
 
-DB::Status LmdbDB::Read(const std::string &table, const std::string &key, const std::vector<std::string> *fields,
-                        std::vector<Field> &result) {
+DB::Status LmdbDB::Read(const std::string &table, const std::string &key) {
   DB::Status s = kOK;
   MDB_txn *txn;
   MDB_val key_slice, val_slice;
@@ -254,7 +253,7 @@ cleanup:
   return s;
 }
 
-DB::Status LmdbDB::Update(const std::string &table, const std::string &key, std::vector<Field> MAYBE_UNUSED &values)
+DB::Status LmdbDB::Update(const std::string &table, const std::string &key)
 {
   MDB_txn *txn;
   MDB_val key_slice, val_slice;
@@ -281,7 +280,7 @@ DB::Status LmdbDB::Update(const std::string &table, const std::string &key, std:
   return kOK;
 }
 
-DB::Status LmdbDB::Insert(const std::string &table, const std::string &key, std::vector<Field> MAYBE_UNUSED &values)
+DB::Status LmdbDB::Insert(const std::string &table, const std::string &key)
 {
   MDB_txn *txn;
   MDB_val key_slice, val_slice;

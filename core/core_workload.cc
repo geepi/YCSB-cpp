@@ -262,9 +262,7 @@ std::string CoreWorkload::NextFieldName() {
 
 bool CoreWorkload::DoInsert(DB &db) {
   const std::string key = BuildKeyName(insert_key_sequence_->Next());
-  std::vector<DB::Field> fields;
-  BuildValues(fields);
-  return db.Insert(table_name_, key, fields) == DB::kOK;
+  return db.Insert(table_name_, key) == DB::kOK;
 }
 
 bool CoreWorkload::DoTransaction(DB &db) {
@@ -294,36 +292,15 @@ bool CoreWorkload::DoTransaction(DB &db) {
 DB::Status CoreWorkload::TransactionRead(DB &db) {
   uint64_t key_num = NextTransactionKeyNum();
   const std::string key = BuildKeyName(key_num);
-  std::vector<DB::Field> result;
-  if (!read_all_fields()) {
-    std::vector<std::string> fields;
-    fields.push_back(NextFieldName());
-    return db.Read(table_name_, key, &fields, result);
-  } else {
-    return db.Read(table_name_, key, NULL, result);
-  }
+  return db.Read(table_name_, key);
 }
 
 DB::Status CoreWorkload::TransactionReadModifyWrite(DB &db) {
   uint64_t key_num = NextTransactionKeyNum();
   const std::string key = BuildKeyName(key_num);
   std::vector<DB::Field> result;
-
-  if (!read_all_fields()) {
-    std::vector<std::string> fields;
-    fields.push_back(NextFieldName());
-    db.Read(table_name_, key, &fields, result);
-  } else {
-    db.Read(table_name_, key, NULL, result);
-  }
-
-  std::vector<DB::Field> values;
-  if (write_all_fields()) {
-    BuildValues(values);
-  } else {
-    BuildSingleValue(values);
-  }
-  return db.Update(table_name_, key, values);
+  db.Read(table_name_, key);
+  return db.Update(table_name_, key);
 }
 
 DB::Status CoreWorkload::TransactionScan(DB &db) {
@@ -343,21 +320,13 @@ DB::Status CoreWorkload::TransactionScan(DB &db) {
 DB::Status CoreWorkload::TransactionUpdate(DB &db) {
   uint64_t key_num = NextTransactionKeyNum();
   const std::string key = BuildKeyName(key_num);
-  std::vector<DB::Field> values;
-  if (write_all_fields()) {
-    BuildValues(values);
-  } else {
-    BuildSingleValue(values);
-  }
-  return db.Update(table_name_, key, values);
+  return db.Update(table_name_, key);
 }
 
 DB::Status CoreWorkload::TransactionInsert(DB &db) {
   uint64_t key_num = transaction_insert_key_sequence_->Next();
   const std::string key = BuildKeyName(key_num);
-  std::vector<DB::Field> values;
-  BuildValues(values);
-  DB::Status s = db.Insert(table_name_, key, values);
+  DB::Status s = db.Insert(table_name_, key);
   transaction_insert_key_sequence_->Acknowledge(key_num);
   return s;
 }

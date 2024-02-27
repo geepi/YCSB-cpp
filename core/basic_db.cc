@@ -28,19 +28,9 @@ void BasicDB::Init() {
   }
 }
 
-DB::Status BasicDB::Read(const std::string &table, const std::string &key,
-                         const std::vector<std::string> *fields, std::vector<Field> &result) {
+DB::Status BasicDB::Read(const std::string &table, const std::string &key) {
   std::lock_guard<std::mutex> lock(mutex_);
-  *out_ << "READ " << table << ' ' << key;
-  if (fields) {
-    *out_ << " [ ";
-    for (auto f : *fields) {
-      *out_ << f << ' ';
-    }
-    *out_ << ']' << std::endl;
-  } else {
-    *out_  << " < all fields >" << std::endl;
-  }
+  *out_ << "READ " << table << ' ' << key << std::endl;
   return kOK;
 }
 
@@ -61,25 +51,15 @@ DB::Status BasicDB::Scan(const std::string &table, const std::string &key, int l
   return kOK;
 }
 
-DB::Status BasicDB::Update(const std::string &table, const std::string &key,
-                           std::vector<Field> &values) {
+DB::Status BasicDB::Update(const std::string &table, const std::string &key) {
   std::lock_guard<std::mutex> lock(mutex_);
-  *out_ << "UPDATE " << table << ' ' << key << " [ ";
-  for (auto v : values) {
-    *out_ << v.name << '=' << v.value << ' ';
-  }
-  *out_ << ']' << std::endl;
+  *out_ << "UPDATE " << table << ' ' << key << std::endl;
   return kOK;
 }
 
-DB::Status BasicDB::Insert(const std::string &table, const std::string &key,
-                           std::vector<Field> &values) {
+DB::Status BasicDB::Insert(const std::string &table, const std::string &key) {
   std::lock_guard<std::mutex> lock(mutex_);
-  *out_ << "INSERT " << table << ' ' << key << " [ ";
-  for (auto v : values) {
-    *out_ << v.name << '=' << v.value << ' ';
-  }
-  *out_ << ']' << std::endl;
+  *out_ << "INSERT " << table << ' ' << key << std::endl;
   return kOK;
 }
 

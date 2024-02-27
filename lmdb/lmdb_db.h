@@ -26,15 +26,14 @@ class LmdbDB : public DB {
 
   void Cleanup();
 
-  Status Read(const std::string &table, const std::string &key,
-              const std::vector<std::string> *fields, std::vector<Field> &result);
+  Status Read(const std::string &table, const std::string &key);
 
   Status Scan(const std::string &table, const std::string &key, int len,
               const std::vector<std::string> *fields, std::vector<std::vector<Field>> &result);
 
-  Status Update(const std::string &table, const std::string &key, std::vector<Field> &values);
+  Status Update(const std::string &table, const std::string &key);
 
-  Status Insert(const std::string &table, const std::string &key, std::vector<Field> &values);
+  Status Insert(const std::string &table, const std::string &key);
 
   Status Delete(const std::string &table, const std::string &key);
 
