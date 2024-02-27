@@ -204,9 +204,7 @@ void WTDB::Cleanup(){
   error_check(conn_->close(conn_, NULL));
 }
 
-DB::Status WTDB::ReadSingleEntry(const std::string &table, const std::string &key,
-                                      const std::vector<std::string> *fields,
-                                      std::vector<Field> &result) {
+DB::Status WTDB::ReadSingleEntry(const std::string &table, const std::string &key) {
   WT_ITEM k = {key.data(), key.size()};
   WT_ITEM v;
   int ret;
@@ -218,11 +216,7 @@ DB::Status WTDB::ReadSingleEntry(const std::string &table, const std::string &ke
     throw utils::Exception(WT_PREFIX " search error");
   }
   error_check(cursor_->get_value(cursor_, &v));
-  if (fields != nullptr) {
-    DeserializeRowFilter(&result, (const char*)v.data, v.size, *fields);
-  } else {
-    DeserializeRow(&result, (const char*)v.data, v.size);
-  }
+
   return kOK;
 }
 
@@ -250,40 +244,13 @@ DB::Status WTDB::ScanSingleEntry(const std::string &table, const std::string &ke
   return kOK;
 }
 
-DB::Status WTDB::UpdateSingleEntry(const std::string &table, const std::string &key,
-                           std::vector<Field> &values){
-  std::vector<Field> current_values;
+DB::Status WTDB::UpdateSingleEntry(const std::string &table, const std::string &key){
   WT_ITEM k = {key.data(), key.size()};
-  WT_ITEM v;
-  int ret;
+  WT_ITEM v = {key.data(),key.size()};
 
   cursor_->set_key(cursor_, &k);
-  ret = cursor_->search(cursor_);
-  if(ret==WT_NOTFOUND){
-    return kNotFound;
-  } else if(ret != 0) {
-    throw utils::Exception(WT_PREFIX " search error");
-  }
-  error_check(cursor_->get_value(cursor_, &v));
-  DeserializeRow(&current_values, (const char*)v.data, v.size);
-  for (Field &new_field : values) {
-    bool found MAYBE_UNUSED = false;
-    for (Field &cur_field : current_values) {
-      if (cur_field.name == new_field.name) {
-        found = true;
-        cur_field.value = new_field.value;
-        break;
-      }
-    }
-    assert(found);
-  }
-
-  std::string data;
-  SerializeRow(current_values, &data);
-  v.data = data.data();
-  v.size = data.size();
   cursor_->set_value(cursor_, &v);
-  ret = cursor_->update(cursor_);
+  int ret = cursor_->update(cursor_);
   if(ret==WT_NOTFOUND){
     return kNotFound;
   } else if(ret != 0) {
@@ -292,15 +259,12 @@ DB::Status WTDB::UpdateSingleEntry(const std::string &table, const std::string &
   return kOK;
 }
 
-DB::Status WTDB::InsertSingleEntry(const std::string &table, const std::string &key,
-                           std::vector<Field> &values){
+DB::Status WTDB::InsertSingleEntry(const std::string &table, const std::string &key){
   std::string data;
-  WT_ITEM k = {key.data(), key.size()}, v;
-  
+  WT_ITEM k = {key.data(), key.size()};
+  WT_ITEM v = {key.data(), key.size()};
+
   cursor_->set_key(cursor_, &k);
-  SerializeRow(values, &data);
-  v.data = data.data();
-  v.size = data.size();
   cursor_->set_value(cursor_, &v);
   error_check(cursor_->insert(cursor_));
   // TODO: cursor reset?
