@@ -86,7 +86,8 @@ void RateLimitThread(std::string rate_file, std::vector<ycsbc::utils::RateLimite
   }
 }
 
-void GetWriteAmplification(){
+void GetWriteAmplification(const int op_wchar)
+{
   pid_t pid = getpid();
   std::string path = "/proc/" + std::to_string(pid) + "/io";
   std::ifstream file(path);
@@ -95,6 +96,13 @@ void GetWriteAmplification(){
     std::string line;
     while (std::getline(file, line))
     {
+      size_t len = line.find(":");
+      if (line.substr(0, len) == "write_bytes")
+      {
+        int wchar = stoi(line.substr(len + 1));
+        double wa = (double)wchar / (double)op_wchar;
+        std::cout << "Write Amplification:" << wa << std::endl;
+      }
       std::cout << line << std::endl;
     }
     file.close();
@@ -181,7 +189,8 @@ int main(const int argc, const char *argv[])
     std::cout << "Load runtime(sec): " << runtime << std::endl;
     std::cout << "Load operations(ops): " << sum << std::endl;
     std::cout << "Load throughput(ops/sec): " << sum / runtime << std::endl;
-    GetWriteAmplification();
+    int op_wchar = std::stoi(props.GetProperty("recordcount")) * 16;
+    GetWriteAmplification(op_wchar);
   }
 
   measurements->Reset();
@@ -243,7 +252,9 @@ int main(const int argc, const char *argv[])
     std::cout << "Run runtime(sec): " << runtime << std::endl;
     std::cout << "Run operations(ops): " << sum << std::endl;
     std::cout << "Run throughput(ops/sec): " << sum / runtime << std::endl;
-    GetWriteAmplification();
+    double write_proportion = 1.0 - std::stod(props.GetProperty("readproportion"));
+    int op_wchar = write_proportion * std::stoi(props.GetProperty("operationcount")) * 16;
+    GetWriteAmplification(op_wchar);
   }
 
   for (int i = 0; i < num_threads; i++) {
