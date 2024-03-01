@@ -86,7 +86,7 @@ void RateLimitThread(std::string rate_file, std::vector<ycsbc::utils::RateLimite
   }
 }
 
-void GetWriteAmplification(const int op_wchar)
+void GetWriteAmplification(const long long op_wchar)
 {
   pid_t pid = getpid();
   std::string path = "/proc/" + std::to_string(pid) + "/io";
@@ -99,7 +99,7 @@ void GetWriteAmplification(const int op_wchar)
       size_t len = line.find(":");
       if (line.substr(0, len) == "write_bytes")
       {
-        int wchar = stoi(line.substr(len + 1));
+        long long wchar = std::stoll(line.substr(len + 1));
         double wa = (double)wchar / (double)op_wchar;
         std::cout << "Write Amplification:" << wa << std::endl;
       }
@@ -113,10 +113,26 @@ void GetWriteAmplification(const int op_wchar)
   }
 }
 
+void limit_memory()
+{
+  pid_t pid = getpid();
+  std::cout << "pid: "<<pid << std::endl;
+  std::ofstream outfile("/sys/fs/cgroup/memory/palm/cgroup.procs");
+  if (outfile.is_open())
+  {
+    outfile << pid << std::endl;
+    outfile.close();
+    return;
+  }
+  std::cerr << "Set limitaion of process failed!" << std::endl;
+  exit(1);
+}
+
 int main(const int argc, const char *argv[])
 {
   ycsbc::utils::Properties props;
   ParseCommandLine(argc, argv, props);
+  limit_memory();
 
   const bool do_load = (props.GetProperty("doload", "false") == "true");
   const bool do_transaction = (props.GetProperty("dotransaction", "false") == "true");
@@ -149,7 +165,6 @@ int main(const int argc, const char *argv[])
   // print status periodically
   const bool show_status = (props.GetProperty("status", "false") == "true");
   const int status_interval = std::stoi(props.GetProperty("status.interval", "10"));
-
   // load phase
   if (do_load) {
     const int total_ops = stoi(props[ycsbc::CoreWorkload::RECORD_COUNT_PROPERTY]);
@@ -188,8 +203,8 @@ int main(const int argc, const char *argv[])
 
     std::cout << "Load runtime(sec): " << runtime << std::endl;
     std::cout << "Load operations(ops): " << sum << std::endl;
-    std::cout << "Load throughput(ops/sec): " << sum / runtime << std::endl;
-    int op_wchar = std::stoi(props.GetProperty("recordcount")) * 16;
+    std::cout << "Load throughput(ops/sec): " << sum / runtime / 1000 << "K" <<std::endl;
+    long long op_wchar = std::stoll(props.GetProperty("recordcount")) * 16;
     GetWriteAmplification(op_wchar);
   }
 
@@ -251,9 +266,9 @@ int main(const int argc, const char *argv[])
 
     std::cout << "Run runtime(sec): " << runtime << std::endl;
     std::cout << "Run operations(ops): " << sum << std::endl;
-    std::cout << "Run throughput(ops/sec): " << sum / runtime << std::endl;
+    std::cout << "Run throughput(ops/sec): " << sum / runtime / 1000 <<"K"<< std::endl;
     double write_proportion = 1.0 - std::stod(props.GetProperty("readproportion"));
-    int op_wchar = write_proportion * std::stoi(props.GetProperty("operationcount")) * 16;
+    long long op_wchar = write_proportion * std::stoll(props.GetProperty("operationcount")) * 16;
     GetWriteAmplification(op_wchar);
   }
 
